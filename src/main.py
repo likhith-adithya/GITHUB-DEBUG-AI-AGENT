@@ -6,118 +6,52 @@ analyze tech stacks, and review repositories.
 """
 
 import asyncio
-import os
+
+from src.cli import select_llm_configuration
 from src.core.agent import AIEngineerAgent
-from src.core.llm import LLMClient, RECOMMENDED_MODELS
+from src.core.llm import LLMClient
+from src.tools.a2a import A2ADebugToolClient
 from src.tools.github import GitHubClient
 
-def _get_available_providers() -> list:
-    """Return only providers that have required credentials set."""
-    checks = {
-        "ollama":       lambda: True,  # Local, no key needed
-        "huggingface":  lambda: bool(os.getenv("HF_API_KEY")),
-        "openrouter":   lambda: bool(os.getenv("OPENROUTER_API_KEY") or os.getenv("API_KEY")),
-        "openai":       lambda: bool(os.getenv("API_KEY")),
-        "vllm":         lambda: True,  # Self-hosted, no key needed
-    }
-    return [p for p in RECOMMENDED_MODELS if checks.get(p, lambda: False)()]
-
-
-def select_llm_configuration():
-    print("\n" + "="*60)
-    print("  ⚙️ Configure AI Engine")
-    print("="*60)
-    
-    providers = _get_available_providers()
-    
-    # 1. Select Provider
-    print("Available Providers:")
-    for i, p in enumerate(providers):
-        print(f"  {i+1}. {p}")
-    print(f"  {len(providers)+1}. default (use .env)") 
-    
-    while True:
-        try:
-            choice = input("\nSelect provider number > ")
-            choice_idx = int(choice) - 1
-            if choice_idx == len(providers):
-                return  # Use defaults
-            if 0 <= choice_idx < len(providers):
-                selected_provider = providers[choice_idx]
-                break
-        except ValueError:
-            pass
-        print("Invalid choice, please select a number.")
-        
-    os.environ["LLM_PROVIDER"] = selected_provider
-    
-    # 2. Select Model
-    models = RECOMMENDED_MODELS[selected_provider]
-    print(f"\nRecommended models for {selected_provider}:")
-    for i, m in enumerate(models):
-        print(f"  {i+1}. {m}")
-    print(f"  {len(models)+1}. other (type manually)")
-    
-    while True:
-        try:
-            choice = input("\nSelect model number > ")
-            choice_idx = int(choice) - 1
-            if choice_idx == len(models):
-                selected_model = input("Enter exactly model name > ")
-                break
-            if 0 <= choice_idx < len(models):
-                selected_model = models.get(choice_idx) if isinstance(models, dict) else models[choice_idx]
-                break
-        except ValueError:
-            pass
-        print("Invalid choice, please select a number.")
-        
-    # Map back to environment variables Settings expects
-    if selected_provider == "ollama":
-        os.environ["OLLAMA_MODEL"] = selected_model
-    elif selected_provider == "huggingface":
-        os.environ["HF_MODEL"] = selected_model
-    elif selected_provider == "openrouter":
-        os.environ["OPENROUTER_MODEL"] = selected_model
-    elif selected_provider == "openai":
-        os.environ["MODEL_NAME"] = selected_model
-    
-    print(f"\nConfigured: {selected_provider} running {selected_model}")
 
 async def main():
+    # 1. Configuration Phase
     select_llm_configuration()
-    
+
+    # 2. Initialization Phase
     llm_client = LLMClient()
     github_client = GitHubClient()
-    
-    agent = AIEngineerAgent(
-        llm_client=llm_client,
-        tools_clients=[github_client]
-    )
+    a2a_client = A2ADebugToolClient()
+
+    agent = AIEngineerAgent(llm_client=llm_client, tools_clients=[github_client, a2a_client])
+
     try:
+        # 3. Setup Phase
         await agent.setup()
-        
-        print("\n" + "="*60)
+
+        print("\n" + "=" * 60)
         print("  🐛 AI Code Debugger Agent")
         print("  Type your query or 'quit' to exit")
-        print("="*60)
-        
+        print("=" * 60)
+
+        # 4. Interaction Phase
         while True:
             try:
                 query = input("\nDeveloper Query > ")
             except (EOFError, KeyboardInterrupt):
                 print("\nGoodbye!")
                 break
-                
-            if query.lower() in ['quit', 'exit']:
+
+            if query.lower() in ["quit", "exit"]:
                 print("Goodbye!")
                 break
             if not query.strip():
                 continue
-                
+
             await agent.process_user_query(query)
-            
+
     finally:
+        # 5. Cleanup Phase
         await agent.teardown()
 
 

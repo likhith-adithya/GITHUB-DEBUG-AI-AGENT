@@ -1,15 +1,18 @@
 import json
 from typing import List, Optional
+
 from src.tools.base import BaseToolClient
+
 # Maximum words to keep from a single tool result to prevent context overflow
 # Modern LLMs (Llama 3, Gemini) have 100k+ token windows, so we can be generous
 MAX_TOOL_RESULT_WORDS = 8000
+
 
 class AIEngineerAgent:
     def __init__(self, llm_client, tools_clients: Optional[List[BaseToolClient]] = None):
         self.llm = llm_client
         self.tools_clients = tools_clients or []
-        
+
     async def setup(self):
         """Connect and verify credentials for all tools."""
         for client in self.tools_clients:
@@ -28,14 +31,16 @@ class AIEngineerAgent:
         for client in self.tools_clients:
             tools = client.get_available_tools()
             for tool in tools:
-                openai_tools.append({
-                    "type": "function",
-                    "function": {
-                        "name": tool.name,
-                        "description": tool.description,
-                        "parameters": tool.parameters,
+                openai_tools.append(
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": tool.name,
+                            "description": tool.description,
+                            "parameters": tool.parameters,
+                        },
                     }
-                })
+                )
         return openai_tools
 
     async def _dispatch_tool_call(self, tool_name: str, tool_args: dict) -> str:
@@ -53,31 +58,37 @@ class AIEngineerAgent:
         words = text.split()
         if len(words) <= max_words:
             return text
-        
+
         half = max_words // 2
-        return " ".join(words[:half]) + f"\n\n... [TRUNCATED {len(words) - max_words} words] ...\n\n" + " ".join(words[-half:])
+        return (
+            " ".join(words[:half])
+            + f"\n\n... [TRUNCATED {len(words) - max_words} words] ...\n\n"
+            + " ".join(words[-half:])
+        )
 
     def _response_to_dict(self, response) -> dict:
         """Convert the LLM response object to a serializable dict for the message history.
-        
+
         This is necessary because some providers return SDK objects that don't serialize
         properly when appended to the messages list for subsequent API calls.
         """
         msg = {
             "role": "assistant",
-            "content": getattr(response, 'content', None) or "",
+            "content": getattr(response, "content", None) or "",
         }
-        if getattr(response, 'tool_calls', None):
+        if getattr(response, "tool_calls", None):
             msg["tool_calls"] = []
             for tc in response.tool_calls:
-                msg["tool_calls"].append({
-                    "id": tc.id,
-                    "type": "function",
-                    "function": {
-                        "name": tc.function.name,
-                        "arguments": tc.function.arguments,
+                msg["tool_calls"].append(
+                    {
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {
+                            "name": tc.function.name,
+                            "arguments": tc.function.arguments,
+                        },
                     }
-                })
+                )
         return msg
 
     async def process_user_query(self, query: str):
@@ -115,64 +126,66 @@ IMPORTANT RULES:
 
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": query}
+            {"role": "user", "content": query},
         ]
 
         print("\nThinking...")
-        
+
         # Max iteration limit to prevent infinite loops
-        for _ in range(10): 
+        for _ in range(10):
             try:
                 response = await self.llm.generate_response(messages, tools=tools_list)
             except Exception as e:
                 print(f"\n[!] Failed to connect to LLM: {type(e).__name__} - {e}")
                 print("Please ensure your LLM is running or check your .env configuration.")
                 break
-            
+
             # If the LLM didn't request a tool, it's done providing the final answer
-            if not getattr(response, 'tool_calls', None):
-                print(f"\n{'='*60}")
+            if not getattr(response, "tool_calls", None):
+                print(f"\n{'=' * 60}")
                 print("  Agent Final Output")
-                print(f"{'='*60}")
-                content = getattr(response, 'content', None) or 'No content returned.'
+                print(f"{'=' * 60}")
+                content = getattr(response, "content", None) or "No content returned."
                 print(content)
-                print(f"{'='*60}\n")
+                print(f"{'=' * 60}\n")
                 break
-                
+
             # If the LLM requested an action (a tool call)
             # Convert and append the assistant message as a proper dict
             messages.append(self._response_to_dict(response))
-            
+
             for tool_call in response.tool_calls:
                 tool_name = tool_call.function.name
-                
+
                 # Safely parse tool arguments
                 try:
                     tool_args = json.loads(tool_call.function.arguments)
-                except json.JSONDecodeError as e:
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": f"Error: Invalid JSON arguments: {tool_call.function.arguments}"
-                    })
+                except json.JSONDecodeError:
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": f"Error: Invalid JSON arguments: {tool_call.function.arguments}",
+                        }
+                    )
                     continue
-                
+
                 try:
                     tool_result = await self._dispatch_tool_call(tool_name, tool_args)
                     # Truncate very long results to prevent context overflow
                     tool_result = self._truncate_result(tool_result)
-                    
+
                     # Store the result so the LLM knows what happened
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": tool_result
-                    })
+                    messages.append(
+                        {"role": "tool", "tool_call_id": tool_call.id, "content": tool_result}
+                    )
                 except Exception as e:
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "content": f"Error executing tool: {e}"
-                    })
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": f"Error executing tool: {e}",
+                        }
+                    )
         else:
             print("\n[!] Agent reached maximum iteration limit without finalizing an answer.")
