@@ -1,11 +1,12 @@
-from typing import List, Dict, Any
-from dataclasses import dataclass
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Any, Dict, List
 
 
 @dataclass
 class ToolDefinition:
     """Describes a tool the LLM can call, in a format compatible with OpenAI function calling."""
+
     name: str
     description: str
     parameters: Dict[str, Any]

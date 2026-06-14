@@ -5,16 +5,15 @@ Provides GitHub API tools (search repos, read files, list issues, etc.)
 using httpx — no Node.js, npx, or MCP required.
 """
 
-import json
 import base64
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 import httpx
+
 from src.config import settings
 from src.tools.base import BaseToolClient, ToolDefinition
 
 GITHUB_API_BASE = "https://api.github.com"
-
 
 
 # ─── Tool Registry ────────────────────────────────────────────────────────────
@@ -29,15 +28,15 @@ GITHUB_TOOLS: List[ToolDefinition] = [
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Search query (e.g., 'machine learning python')"
+                    "description": "Search query (e.g., 'machine learning python')",
                 },
                 "per_page": {
                     "type": "integer",
-                    "description": "Number of results to return (max 30, default 5)"
-                }
+                    "description": "Number of results to return (max 30, default 5)",
+                },
             },
-            "required": ["query"]
-        }
+            "required": ["query"],
+        },
     ),
     ToolDefinition(
         name="get_file_contents",
@@ -45,25 +44,19 @@ GITHUB_TOOLS: List[ToolDefinition] = [
         parameters={
             "type": "object",
             "properties": {
-                "owner": {
-                    "type": "string",
-                    "description": "Repository owner (e.g., 'octocat')"
-                },
-                "repo": {
-                    "type": "string",
-                    "description": "Repository name (e.g., 'hello-world')"
-                },
+                "owner": {"type": "string", "description": "Repository owner (e.g., 'octocat')"},
+                "repo": {"type": "string", "description": "Repository name (e.g., 'hello-world')"},
                 "path": {
                     "type": "string",
-                    "description": "File path within the repository (e.g., 'src/main.py')"
+                    "description": "File path within the repository (e.g., 'src/main.py')",
                 },
                 "branch": {
                     "type": "string",
-                    "description": "Branch name (default: repo's default branch)"
-                }
+                    "description": "Branch name (default: repo's default branch)",
+                },
             },
-            "required": ["owner", "repo", "path"]
-        }
+            "required": ["owner", "repo", "path"],
+        },
     ),
     ToolDefinition(
         name="list_repository_files",
@@ -71,25 +64,19 @@ GITHUB_TOOLS: List[ToolDefinition] = [
         parameters={
             "type": "object",
             "properties": {
-                "owner": {
-                    "type": "string",
-                    "description": "Repository owner"
-                },
-                "repo": {
-                    "type": "string",
-                    "description": "Repository name"
-                },
+                "owner": {"type": "string", "description": "Repository owner"},
+                "repo": {"type": "string", "description": "Repository name"},
                 "path": {
                     "type": "string",
-                    "description": "Directory path (use '' or '.' for root)"
+                    "description": "Directory path (use '' or '.' for root)",
                 },
                 "branch": {
                     "type": "string",
-                    "description": "Branch name (default: repo's default branch)"
-                }
+                    "description": "Branch name (default: repo's default branch)",
+                },
             },
-            "required": ["owner", "repo"]
-        }
+            "required": ["owner", "repo"],
+        },
     ),
     ToolDefinition(
         name="search_code",
@@ -99,15 +86,15 @@ GITHUB_TOOLS: List[ToolDefinition] = [
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Code search query. Use qualifiers like 'repo:owner/name' to search within a specific repo."
+                    "description": "Code search query. Use qualifiers like 'repo:owner/name' to search within a specific repo.",
                 },
                 "per_page": {
                     "type": "integer",
-                    "description": "Number of results (max 30, default 5)"
-                }
+                    "description": "Number of results (max 30, default 5)",
+                },
             },
-            "required": ["query"]
-        }
+            "required": ["query"],
+        },
     ),
     ToolDefinition(
         name="list_issues",
@@ -115,26 +102,20 @@ GITHUB_TOOLS: List[ToolDefinition] = [
         parameters={
             "type": "object",
             "properties": {
-                "owner": {
-                    "type": "string",
-                    "description": "Repository owner"
-                },
-                "repo": {
-                    "type": "string",
-                    "description": "Repository name"
-                },
+                "owner": {"type": "string", "description": "Repository owner"},
+                "repo": {"type": "string", "description": "Repository name"},
                 "state": {
                     "type": "string",
                     "description": "Filter by state: 'open', 'closed', or 'all' (default: 'open')",
-                    "enum": ["open", "closed", "all"]
+                    "enum": ["open", "closed", "all"],
                 },
                 "per_page": {
                     "type": "integer",
-                    "description": "Number of results (max 30, default 10)"
-                }
+                    "description": "Number of results (max 30, default 10)",
+                },
             },
-            "required": ["owner", "repo"]
-        }
+            "required": ["owner", "repo"],
+        },
     ),
     ToolDefinition(
         name="get_issue",
@@ -142,21 +123,12 @@ GITHUB_TOOLS: List[ToolDefinition] = [
         parameters={
             "type": "object",
             "properties": {
-                "owner": {
-                    "type": "string",
-                    "description": "Repository owner"
-                },
-                "repo": {
-                    "type": "string",
-                    "description": "Repository name"
-                },
-                "issue_number": {
-                    "type": "integer",
-                    "description": "The issue number"
-                }
+                "owner": {"type": "string", "description": "Repository owner"},
+                "repo": {"type": "string", "description": "Repository name"},
+                "issue_number": {"type": "integer", "description": "The issue number"},
             },
-            "required": ["owner", "repo", "issue_number"]
-        }
+            "required": ["owner", "repo", "issue_number"],
+        },
     ),
     ToolDefinition(
         name="list_commits",
@@ -164,25 +136,16 @@ GITHUB_TOOLS: List[ToolDefinition] = [
         parameters={
             "type": "object",
             "properties": {
-                "owner": {
-                    "type": "string",
-                    "description": "Repository owner"
-                },
-                "repo": {
-                    "type": "string",
-                    "description": "Repository name"
-                },
-                "path": {
-                    "type": "string",
-                    "description": "Only commits containing this file path"
-                },
+                "owner": {"type": "string", "description": "Repository owner"},
+                "repo": {"type": "string", "description": "Repository name"},
+                "path": {"type": "string", "description": "Only commits containing this file path"},
                 "per_page": {
                     "type": "integer",
-                    "description": "Number of results (max 30, default 10)"
-                }
+                    "description": "Number of results (max 30, default 10)",
+                },
             },
-            "required": ["owner", "repo"]
-        }
+            "required": ["owner", "repo"],
+        },
     ),
     ToolDefinition(
         name="get_repository_info",
@@ -190,17 +153,11 @@ GITHUB_TOOLS: List[ToolDefinition] = [
         parameters={
             "type": "object",
             "properties": {
-                "owner": {
-                    "type": "string",
-                    "description": "Repository owner"
-                },
-                "repo": {
-                    "type": "string",
-                    "description": "Repository name"
-                }
+                "owner": {"type": "string", "description": "Repository owner"},
+                "repo": {"type": "string", "description": "Repository name"},
             },
-            "required": ["owner", "repo"]
-        }
+            "required": ["owner", "repo"],
+        },
     ),
 ]
 
@@ -244,9 +201,7 @@ class GitHubClient(BaseToolClient):
                 # Token might have limited scopes but still be valid
                 print(f"Connected to GitHub (status: {response.status_code})")
         except httpx.ConnectError:
-            raise RuntimeError(
-                "Cannot reach GitHub API. Check your internet connection."
-            )
+            raise RuntimeError("Cannot reach GitHub API. Check your internet connection.")
 
     async def disconnect(self):
         """Close the HTTP client."""
@@ -278,7 +233,7 @@ class GitHubClient(BaseToolClient):
         per_page = min(per_page, 30)
         response = await self._client.get(
             "/search/repositories",
-            params={"q": query, "per_page": per_page, "sort": "stars", "order": "desc"}
+            params={"q": query, "per_page": per_page, "sort": "stars", "order": "desc"},
         )
         response.raise_for_status()
         data = response.json()
@@ -298,7 +253,9 @@ class GitHubClient(BaseToolClient):
             )
         return f"Found {data['total_count']} repositories:\n\n" + "\n\n".join(results)
 
-    async def _tool_get_file_contents(self, owner: str, repo: str, path: str, branch: str = None) -> str:
+    async def _tool_get_file_contents(
+        self, owner: str, repo: str, path: str, branch: str = None
+    ) -> str:
         """Read a file's contents from a GitHub repository."""
         url = f"/repos/{owner}/{repo}/contents/{path}"
         params = {}
@@ -331,15 +288,13 @@ class GitHubClient(BaseToolClient):
             else:
                 decoded = content
 
-            return (
-                f"File: {path} ({data.get('size', 0)} bytes)\n"
-                f"{'─' * 60}\n"
-                f"{decoded}"
-            )
+            return f"File: {path} ({data.get('size', 0)} bytes)\n{'─' * 60}\n{decoded}"
 
         return f"Unexpected content type for {path}: {data.get('type', 'unknown')}"
 
-    async def _tool_list_repository_files(self, owner: str, repo: str, path: str = "", branch: str = None) -> str:
+    async def _tool_list_repository_files(
+        self, owner: str, repo: str, path: str = "", branch: str = None
+    ) -> str:
         """List files in a repository directory."""
         if path in (".", ""):
             path = ""
@@ -367,10 +322,7 @@ class GitHubClient(BaseToolClient):
     async def _tool_search_code(self, query: str, per_page: int = 5) -> str:
         """Search for code across GitHub."""
         per_page = min(per_page, 30)
-        response = await self._client.get(
-            "/search/code",
-            params={"q": query, "per_page": per_page}
-        )
+        response = await self._client.get("/search/code", params={"q": query, "per_page": per_page})
         response.raise_for_status()
         data = response.json()
 
@@ -380,17 +332,17 @@ class GitHubClient(BaseToolClient):
         results = []
         for item in data["items"]:
             results.append(
-                f"📄 {item['repository']['full_name']}/{item['path']}\n"
-                f"   URL: {item['html_url']}"
+                f"📄 {item['repository']['full_name']}/{item['path']}\n   URL: {item['html_url']}"
             )
         return f"Found {data['total_count']} code results:\n\n" + "\n\n".join(results)
 
-    async def _tool_list_issues(self, owner: str, repo: str, state: str = "open", per_page: int = 10) -> str:
+    async def _tool_list_issues(
+        self, owner: str, repo: str, state: str = "open", per_page: int = 10
+    ) -> str:
         """List issues for a repository."""
         per_page = min(per_page, 30)
         response = await self._client.get(
-            f"/repos/{owner}/{repo}/issues",
-            params={"state": state, "per_page": per_page}
+            f"/repos/{owner}/{repo}/issues", params={"state": state, "per_page": per_page}
         )
         response.raise_for_status()
         data = response.json()
@@ -400,7 +352,7 @@ class GitHubClient(BaseToolClient):
 
         results = []
         for issue in data:
-            labels = ", ".join(l["name"] for l in issue.get("labels", []))
+            labels = ", ".join(label["name"] for label in issue.get("labels", []))
             labels_str = f" [{labels}]" if labels else ""
             results.append(
                 f"  #{issue['number']} {issue['title']}{labels_str}\n"
@@ -412,13 +364,11 @@ class GitHubClient(BaseToolClient):
 
     async def _tool_get_issue(self, owner: str, repo: str, issue_number: int) -> str:
         """Get detailed info about a specific issue."""
-        response = await self._client.get(
-            f"/repos/{owner}/{repo}/issues/{issue_number}"
-        )
+        response = await self._client.get(f"/repos/{owner}/{repo}/issues/{issue_number}")
         response.raise_for_status()
         issue = response.json()
 
-        labels = ", ".join(l["name"] for l in issue.get("labels", []))
+        labels = ", ".join(label["name"] for label in issue.get("labels", []))
         labels_str = f"\nLabels: {labels}" if labels else ""
 
         result = (
@@ -433,8 +383,7 @@ class GitHubClient(BaseToolClient):
         # Also fetch comments if any
         if issue.get("comments", 0) > 0:
             comments_resp = await self._client.get(
-                f"/repos/{owner}/{repo}/issues/{issue_number}/comments",
-                params={"per_page": 10}
+                f"/repos/{owner}/{repo}/issues/{issue_number}/comments", params={"per_page": 10}
             )
             if comments_resp.status_code == 200:
                 comments = comments_resp.json()
@@ -447,17 +396,16 @@ class GitHubClient(BaseToolClient):
 
         return result
 
-    async def _tool_list_commits(self, owner: str, repo: str, path: str = None, per_page: int = 10) -> str:
+    async def _tool_list_commits(
+        self, owner: str, repo: str, path: str = None, per_page: int = 10
+    ) -> str:
         """List recent commits."""
         per_page = min(per_page, 30)
         params = {"per_page": per_page}
         if path:
             params["path"] = path
 
-        response = await self._client.get(
-            f"/repos/{owner}/{repo}/commits",
-            params=params
-        )
+        response = await self._client.get(f"/repos/{owner}/{repo}/commits", params=params)
         response.raise_for_status()
         data = response.json()
 

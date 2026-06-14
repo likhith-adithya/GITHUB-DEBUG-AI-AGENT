@@ -30,3 +30,7 @@ htmlcov/
 
 # npm (MCP server cache)
 node_modules/
+
+# A2A Sandboxes
+.sandboxes/
+

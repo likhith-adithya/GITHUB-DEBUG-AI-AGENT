@@ -1,18 +1,27 @@
 from openai import AsyncOpenAI
+
 from src.config import settings
 
 # Models known to support tool/function calling well
 RECOMMENDED_MODELS = {
-    "huggingface": ["Meta-Llama-3.3-70B-Instruct", "DeepSeek-R1-Distill-Llama-70B", "DeepSeek-R1", "Meta-Llama-3.1-8B-Instruct"],
+    "huggingface": [
+        "Meta-Llama-3.3-70B-Instruct",
+        "DeepSeek-R1-Distill-Llama-70B",
+        "DeepSeek-R1",
+        "Meta-Llama-3.1-8B-Instruct",
+    ],
     "openrouter": ["meta-llama/llama-3.3-70b-instruct", "qwen/qwen-2.5-72b-instruct"],
     "openai": ["gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo"],
+    "ollama": ["qwen2.5:7b", "llama3.1:8b"],
+    "google": ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash", "gemini-2.0-flash-lite"],
+    "vllm": ["meta-llama/Meta-Llama-3-8B-Instruct"],
 }
 
 
 class LLMClient:
     def __init__(self):
         self.provider = settings.LLM_PROVIDER
-        
+
         # Determine the base URL and API key based on the provider
         if self.provider == "ollama":
             # Ollama runs locally and exposes an OpenAI-compatible API
@@ -20,14 +29,15 @@ class LLMClient:
             api_key = "ollama"  # Ollama doesn't require a real API key
             self.model = settings.OLLAMA_MODEL
             print(f"[LLM] Using Ollama (local) with model: {self.model}")
-            print(f"[LLM] Recommended models for tool calling: {', '.join(RECOMMENDED_MODELS['ollama'])}")
+            print(
+                f"[LLM] Recommended models for tool calling: {', '.join(RECOMMENDED_MODELS['ollama'])}"
+            )
 
         elif self.provider == "vllm":
             base_url = settings.VLLM_API_URL
             api_key = "EMPTY"
             self.model = settings.VLLM_MODEL
             print(f"[LLM] Using vLLM with model: {self.model}")
-
 
         elif self.provider == "openrouter":
             # OpenRouter: one API key, access to many open-source models
@@ -53,6 +63,17 @@ class LLMClient:
                 )
             print(f"[LLM] Using HuggingFace Inference with model: {self.model}")
 
+        elif self.provider == "google":
+            # Google Gemini via OpenAI-compatible endpoint
+            base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+            api_key = settings.GEMINI_API_KEY
+            self.model = settings.GEMINI_MODEL
+            if not api_key:
+                raise ValueError(
+                    "GEMINI_API_KEY environment variable is required when LLM_PROVIDER is 'google'."
+                )
+            print(f"[LLM] Using Google Gemini with model: {self.model}")
+
         else:
             # OpenAI or any other OpenAI-compatible provider
             base_url = settings.API_BASE_URL
@@ -66,11 +87,8 @@ class LLMClient:
 
         # Initialize the AsyncOpenAI client
         # Works for all providers since they expose OpenAI-compatible APIs
-        self.client = AsyncOpenAI(
-            api_key=api_key,
-            base_url=base_url
-        )
-        
+        self.client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+
     async def generate_response(self, messages, tools=None):
         """
         Sends messages to the LLM and returns the response.
@@ -82,16 +100,16 @@ class LLMClient:
                 "messages": messages,
                 "temperature": 0.1,  # Low temperature for more precise/analytical tasks
             }
-            
+
             if tools:
                 kwargs["tools"] = tools
                 # Some providers work better with explicit tool_choice
                 if self.provider == "ollama":
                     kwargs["tool_choice"] = "auto"
-                
+
             response = await self.client.chat.completions.create(**kwargs)
             return response.choices[0].message
-            
+
         except Exception as e:
             print(f"Error communicating with LLM: {e}")
             raise

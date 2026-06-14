@@ -1,6 +1,8 @@
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
-from src.tools.github import GitHubClient, GITHUB_TOOLS, ToolDefinition
+
+from src.tools.github import GITHUB_TOOLS, GitHubClient, ToolDefinition
 
 
 def test_github_client_requires_token(monkeypatch):
@@ -65,10 +67,10 @@ async def test_call_tool_dispatches(monkeypatch):
     """call_tool should dispatch to the correct handler method."""
     monkeypatch.setenv("GITHUB_PERSONAL_ACCESS_TOKEN", "fake_token")
     client = GitHubClient()
-    
+
     # Mock the internal handler
     client._tool_search_repositories = AsyncMock(return_value="mocked result")
-    
+
     result = await client.call_tool("search_repositories", {"query": "test"})
     assert result == "mocked result"
     client._tool_search_repositories.assert_called_once_with(query="test")
@@ -79,11 +81,11 @@ async def test_connect_success(monkeypatch):
     """connect() should verify token by calling /user."""
     monkeypatch.setenv("GITHUB_PERSONAL_ACCESS_TOKEN", "fake_token")
     client = GitHubClient()
-    
+
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {"login": "testuser"}
-    
+
     client._client.get = AsyncMock(return_value=mock_response)
     await client.connect()
     client._client.get.assert_called_once_with("/user")
@@ -94,10 +96,10 @@ async def test_connect_invalid_token(monkeypatch):
     """connect() should raise on invalid token."""
     monkeypatch.setenv("GITHUB_PERSONAL_ACCESS_TOKEN", "bad_token")
     client = GitHubClient()
-    
+
     mock_response = MagicMock()
     mock_response.status_code = 401
-    
+
     client._client.get = AsyncMock(return_value=mock_response)
     with pytest.raises(ValueError, match="invalid or expired"):
         await client.connect()

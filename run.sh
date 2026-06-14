@@ -1,27 +1,31 @@
 #!/bin/bash
+set -e
 
-# Automatically set up and use the project's virtual environment with uv
+# AI Code Debugger Agent - Runner Script
+# Ensures environment is synced and starts the agent.
 
 # Ensure we are in the project root
 cd "$(dirname "$0")"
 
+# Check for uv
 if ! command -v uv &> /dev/null; then
-    echo "uv could not be found. Please install it first: curl -LsSf https://astral.sh/uv/install.sh | sh"
+    echo "Error: 'uv' not found. Please install it: https://astral.sh/uv"
     exit 1
 fi
 
-export UV_CACHE_DIR=/tmp/uv-cache
+# Environment Configuration
+export UV_CACHE_DIR="/tmp/uv-cache-$(whoami)"
 export UV_LINK_MODE=copy
-export UV_PROJECT_ENVIRONMENT=.uv-314-env
+export UV_PROJECT_ENVIRONMENT=".venv"
 
-echo "Syncing project environment with uv..."
-uv sync
+echo "==> Syncing dependencies..."
+uv sync --quiet
 
-# Set PYTHONPATH so 'src' module can be found
-export PYTHONPATH=$(pwd)
+# Add current directory to PYTHONPATH
+export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 
-echo "Starting AI Code Debugger Agent..."
-echo "--------------------------------"
+echo "==> Starting AI Code Debugger Agent..."
+echo "------------------------------------------------------------"
 
-# Run the agent
-uv run python src/main.py
+# Execute the agent
+exec uv run python src/main.py "$@"

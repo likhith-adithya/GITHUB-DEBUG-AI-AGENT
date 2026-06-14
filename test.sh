@@ -1,27 +1,32 @@
 #!/bin/bash
+set -e
 
-# Automatically set up and use the project's virtual environment for testing
+# AI Code Debugger Agent - Test Runner Script
+# Ensures environment is synced and runs the test suite.
 
 # Ensure we are in the project root
 cd "$(dirname "$0")"
 
+# Check for uv
 if ! command -v uv &> /dev/null; then
-    echo "uv could not be found. Please install it first."
+    echo "Error: 'uv' not found. Please install it: https://astral.sh/uv"
     exit 1
 fi
 
-export UV_CACHE_DIR=/tmp/uv-cache
+# Environment Configuration
+export UV_CACHE_DIR="/tmp/uv-cache-$(whoami)"
 export UV_LINK_MODE=copy
-export UV_PROJECT_ENVIRONMENT=.uv-314-env
+export UV_PROJECT_ENVIRONMENT=".venv"
 
-echo "Syncing project environment with uv..."
-uv sync
+echo "==> Syncing dependencies..."
+uv sync --quiet --group dev
 
-# Set PYTHONPATH so 'src' module can be found
-export PYTHONPATH=$(pwd)
+# Add current directory to PYTHONPATH
+export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 
-echo "Running tests in the virtual environment..."
-echo "----------------------------------------"
+echo "==> Running Test Suite..."
+echo "------------------------------------------------------------"
 
-# Run pytest using uv inside the tests directory to avoid root permission errors
-cd tests/ && uv run pytest -v .
+# Execute pytest
+# Passes any additional arguments to pytest (e.g., ./test.sh -k test_name)
+exec uv run pytest "$@"
