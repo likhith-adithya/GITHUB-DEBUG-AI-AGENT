@@ -36,9 +36,20 @@ Acting as an "Elite AI Software Architect," the primary agent scans repositories
 
 The codebase is organized in `src/`, following modern asynchronous design principles:
 
-*   **`src/main.py`**: The application's CLI interface and orchestration layer, managing the lifecycle of the `AIEngineerAgent`.
-*   **`src/core/`**: Houses the `llm.py` connection manager and `agent.py`, containing the primary interactive AI loops.
-*   **`src/tools/`**: Tool definitions, including the `GitHubClient` and the `A2ADebugToolClient` which implements agent task passing.
+*   **`src/main.py`**: The main entry point and orchestration layer for the application. It initializes the LLM client, GitHub client, and the `AIEngineerAgent`, and manages the primary interactive loop for user queries.
+*   **`src/cli/`**: Contains command-line interface related components.
+    *   `menu.py`: Manages the interactive menu for configuring the LLM provider and model, guiding the user through selection based on available credentials.
+*   **`src/config/`**: Houses configuration settings for the application.
+    *   `settings.py`: Defines application settings, primarily loaded from environment variables (e.g., LLM API keys, model names, GitHub token).
+*   **`src/core/`**: Contains the core logic and components of the AI agent.
+    *   `agent.py`: Implements the `AIEngineerAgent`, responsible for managing the AI's behavior, processing user queries, and delegating tasks to tools.
+    *   `llm.py`: Manages the connection and interaction with various Language Model (LLM) providers, handling model selection and API calls.
+    *   `worker.py`: Defines the `DebugWorkerAgent`, a specialized autonomous agent designed to operate within a sandbox to solve specific debugging tasks.
+*   **`src/tools/`**: Defines the various tools the AI agent can utilize.
+    *   `a2a.py`: Implements the Agent-to-Agent (A2A) Debug Tool Client, enabling the primary agent to delegate complex debugging tasks to `DebugWorkerAgent` instances.
+    *   `base.py`: Provides base classes and common utilities for other tool clients.
+    *   `github.py`: Implements the `GitHubClient` for interacting with the GitHub API (e.g., reading repository content, fetching file details).
+    *   `sandbox.py`: Implements the `SandboxToolClient`, providing sandboxed filesystem access (read/write/list) and command execution for safe operation by the `DebugWorkerAgent).
 
 ## 🤝 Contributing
 
