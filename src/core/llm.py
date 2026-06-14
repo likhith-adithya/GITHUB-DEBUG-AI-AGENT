@@ -13,7 +13,7 @@ RECOMMENDED_MODELS = {
     "openrouter": ["meta-llama/llama-3.3-70b-instruct", "qwen/qwen-2.5-72b-instruct"],
     "openai": ["gpt-4o", "gpt-4o-mini", "gpt-3.5-turbo"],
     "ollama": ["qwen2.5:7b", "llama3.1:8b"],
-    "google": ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"],
+    "google": ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash", "gemini-2.0-flash-lite"],
     "vllm": ["meta-llama/Meta-Llama-3-8B-Instruct"],
 }
 

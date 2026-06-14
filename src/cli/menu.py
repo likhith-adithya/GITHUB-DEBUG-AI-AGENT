@@ -77,5 +77,7 @@ def select_llm_configuration():
         os.environ["OPENROUTER_MODEL"] = selected_model
     elif selected_provider == "openai":
         os.environ["MODEL_NAME"] = selected_model
+    elif selected_provider == "google":
+        os.environ["GEMINI_MODEL"] = selected_model
 
     print(f"\nConfigured: {selected_provider} running {selected_model}")
